@@ -160,6 +160,34 @@ export default class GlitchEngine {
         });
     }
 
+    preloadImages() {
+        // Simple image cache
+        this.imageCache = {};
+
+        // Get all unique image sources
+        const imageSources = this.sceneManager.list
+            .map(scene => scene.imageSrc)
+            .filter(src => src); // Filter out undefined
+
+        // Remove duplicates
+        const uniqueSources = [...new Set(imageSources)];
+
+        console.log("Preloading images:", uniqueSources);
+
+        // Load all images
+        uniqueSources.forEach(src => {
+            if (!this.imageCache[src]) {
+                const img = new Image();
+                img.src = src;
+                this.imageCache[src] = img;
+
+                // Add logging to track loading
+                img.onload = () => console.log(`Loaded image: ${src}`);
+                img.onerror = () => console.error(`Failed to load image: ${src}`);
+            }
+        });
+    }
+
     goToScene(index) {
         this.transition.start(() => {
             const sceneData = this.sceneManager.changeTo(index);

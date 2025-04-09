@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupScenes(engine);
     setupControls(engine);
 
+    engine.preloadImages();
     engine.start();
 });
 
@@ -28,7 +29,8 @@ function setupScenes(engine) {
             ...engine.defaultGlitchSettings,
             rgbShift: 2,
             bendAmplitude: 0.5,
-            symbolDensity: 0.93
+            // Reduce density for better performance
+            symbolDensity: 0.7
         }
     });
 
@@ -39,15 +41,29 @@ function setupScenes(engine) {
         glitchSettings: {
             ...engine.defaultGlitchSettings,
             hueShiftSpeed: 0.2,
-            bendFrequency: 0.93,
-            symbolDensity: 0.93,
+            // Reduce these values for better performance
+            bendFrequency: 0.5,
+            symbolDensity: 0.7,
             symbolColor: 'rgba(255, 0, 0, 0.2)'
         }
     });
 }
 
 function setupControls(engine) {
+    // Track last key press time to prevent rapid switching
+    let lastKeyPressTime = 0;
+    const keyDebounceTime = 300; // ms
+
     document.addEventListener('keydown', (e) => {
+        const now = Date.now();
+
+        // Skip if key was pressed too recently
+        if (now - lastKeyPressTime < keyDebounceTime) {
+            return;
+        }
+
+        lastKeyPressTime = now;
+
         switch (e.key) {
             case 'ArrowRight':
                 engine.goToNextScene();
@@ -61,7 +77,12 @@ function setupControls(engine) {
         }
     });
 
+    // Simple debounced resize handler
+    let resizeTimeout;
     window.addEventListener('resize', () => {
-        engine.handleResize();
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            engine.handleResize();
+        }, 250);
     });
 }

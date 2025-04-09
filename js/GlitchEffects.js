@@ -42,21 +42,44 @@ export default class GlitchEffects {
 
     bendImage(settings) {
         const { bendAmplitude, bendHeight, bendFrequency } = settings;
-        const tempCanvas = document.createElement('canvas');
-        const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
 
-        tempCanvas.width = this.ctx.canvas.width;
-        tempCanvas.height = this.ctx.canvas.height;
+        // Skip the effect if amplitude is too small
+        if (Math.abs(bendAmplitude) < 0.1) return;
 
-        for (let y = 0; y < this.ctx.canvas.height; y++) {
-            const sliceHeight = bendHeight;
-            const dx = Math.sin(y * bendFrequency + Date.now() * 0.002) * bendAmplitude;
-            const row = this.ctx.getImageData(0, y, this.ctx.canvas.width, sliceHeight);
-            tempCtx.putImageData(row, dx, y);
+        // Create temp canvas only once as a class property if it doesn't exist
+        if (!this.tempCanvas) {
+            this.tempCanvas = document.createElement('canvas');
+            this.tempCtx = this.tempCanvas.getContext('2d', { willReadFrequently: true });
         }
 
+        // Make sure temp canvas matches the main canvas size
+        if (this.tempCanvas.width !== this.ctx.canvas.width ||
+            this.tempCanvas.height !== this.ctx.canvas.height) {
+            this.tempCanvas.width = this.ctx.canvas.width;
+            this.tempCanvas.height = this.ctx.canvas.height;
+        }
+
+        // Draw the current canvas content to the temp canvas
+        this.tempCtx.clearRect(0, 0, this.tempCanvas.width, this.tempCanvas.height);
+        this.tempCtx.drawImage(this.ctx.canvas, 0, 0);
+
+        // Clear the main canvas
         this.ctx.clearRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
-        this.ctx.drawImage(tempCanvas, 0, 0);
+
+        // Apply bend effect with less frequent sampling
+        const sliceHeight = Math.max(1, Math.floor(bendHeight));
+        const now = Date.now() * 0.002;
+
+        for (let y = 0; y < this.ctx.canvas.height; y += sliceHeight) {
+            const dx = Math.sin(y * bendFrequency + now) * bendAmplitude;
+
+            // Use drawImage for better performance instead of getImageData/putImageData
+            this.ctx.drawImage(
+                this.tempCanvas,
+                0, y, this.ctx.canvas.width, sliceHeight,  // Source
+                dx, y, this.ctx.canvas.width, sliceHeight  // Destination
+            );
+        }
     }
 
     lerpColor(colorA, colorB, amount) {
